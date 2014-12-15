@@ -1,7 +1,9 @@
 package com.kaviddiss.keywords.service;
 
+import com.kaviddiss.keywords.domain.*;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.social.twitter.api.*;
+import org.springframework.social.twitter.api.Tweet;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
@@ -15,9 +17,9 @@ import java.util.regex.Pattern;
 @Service
 public class TwitterStreamIngester implements InitializingBean, StreamListener {
 
-    private static final Pattern HANDLE_PATTERN = Pattern.compile("#\\w+");
+    private static final Pattern HASHTAG_PATTERN = Pattern.compile("#\\w+");
     private static final boolean PROCESS_FRIENDS = false;
-    private static final boolean USE_HANDLES = true;
+    private static final boolean USE_HASHTAG = true;
 
     @Inject
     private Twitter twitter;
@@ -35,39 +37,43 @@ public class TwitterStreamIngester implements InitializingBean, StreamListener {
         run();
     }
 
-    private void processTweet(String lang, String text) {
+    private void processTweet(Tweet tweetEntity) {
+        String lang = tweetEntity.getLanguageCode();
+        String text = tweetEntity.getText();
         if (!"en".equals(lang)) {
             return;
         }
 
-        Matcher matcher = HANDLE_PATTERN.matcher(text);
-        Set<String> handles = new HashSet<>();
+        Matcher matcher = HASHTAG_PATTERN.matcher(text);
+        Set<String> hashtags = new HashSet<>();
         while (matcher.find()) {
             String handle = matcher.group();
-            handles.add(handle.substring(1));
+            hashtags.add(handle.substring(1));
         }
 
-        if (handles.isEmpty()) {
+        if (hashtags.isEmpty()) {
             return;
         }
 
+        com.kaviddiss.keywords.domain.Tweet tweet = new com.kaviddiss.keywords.domain.Tweet(tweetEntity.getFromUser(), tweetEntity.getText(), tweetEntity.getCreatedAt(), tweetEntity.getLanguageCode());
+        tweet = graphService.createTweet(tweet);
         text = text.replaceAll("[\\s,\"]", " ").replaceAll("[ ]{2,}", " ");
         System.out.println("Tweet: " + text);
-        String[] words = USE_HANDLES ? handles.toArray(new String[handles.size()]) : text.split("[ ]+");
-//        words = handles.toArray(new String[handles.size()]);
-        int counter = 0;
-        System.out.println("Word count: " + words.length);
-        for (int i = 0; i < words.length - 1; i++) {
-            for (int j = i + 1; j < words.length; j++) {
-                try {
-                    graphService.connectWords(words[i], words[j]);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                counter++;
+        if (tweetEntity.getEntities() != null) {
+            System.out.println("Mentions: " + tweetEntity.getEntities().getMentions().size());
+            for (MentionEntity mentionEntity : tweetEntity.getEntities().getMentions()) {
+                Profile profile = new Profile(mentionEntity.getScreenName());
+                profile = graphService.createProfile(profile);
+
+                graphService.connectTweetWithMention(tweet, profile);
             }
         }
-        System.out.println("New connections: " + counter);
+
+        String[] words = USE_HASHTAG ? hashtags.toArray(new String[hashtags.size()]) : text.split("[ ]+");
+        System.out.println("Word count: " + words.length);
+        for (String word : words) {
+            graphService.connectTweetWithTag(tweet, word);
+        }
     }
 
     @Override
@@ -79,7 +85,7 @@ public class TwitterStreamIngester implements InitializingBean, StreamListener {
                 graphService.connectWords(String.valueOf(tweet.getFromUserId()), String.valueOf(followerId));
             }
         } else {
-            processTweet(tweet.getLanguageCode(), tweet.getText());
+            processTweet(tweet);
         }
     }
 

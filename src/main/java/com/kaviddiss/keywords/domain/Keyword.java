@@ -6,6 +6,7 @@ import org.springframework.data.neo4j.annotation.Indexed;
 import org.springframework.data.neo4j.annotation.NodeEntity;
 import org.springframework.data.neo4j.annotation.RelatedTo;
 
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -20,8 +21,12 @@ public class Keyword {
     @Indexed(unique=true)
     public String word;
     public int count;
+    public Date createdAt = new Date();
 
-//    @RelatedTo(elementClass = Keyword.class, type = "Connected", direction = Direction.BOTH)
-//    private final Set<Keyword> connectedTo = new LinkedHashSet<Keyword>();
+    public Keyword() {
+    }
 
+    public Keyword(String word) {
+        this.word = word;
+    }
 }

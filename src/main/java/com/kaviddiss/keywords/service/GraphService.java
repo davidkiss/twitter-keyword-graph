@@ -1,8 +1,9 @@
 package com.kaviddiss.keywords.service;
 
-import com.kaviddiss.keywords.domain.Connected;
-import com.kaviddiss.keywords.domain.Keyword;
+import com.kaviddiss.keywords.domain.*;
 import com.kaviddiss.keywords.repository.KeywordRepository;
+import com.kaviddiss.keywords.repository.TweetRepository;
+import com.kaviddiss.keywords.repository.ProfileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,10 @@ import javax.inject.Inject;
 public class GraphService {
     @Inject
     private KeywordRepository keywordRepository;
+    @Inject
+    private TweetRepository tweetRepository;
+    @Inject
+    private ProfileRepository profileRepository;
 
     @Transactional
     public Connected connectWords(String str1, String str2) {
@@ -44,5 +49,27 @@ public class GraphService {
         word.count = word.count + 1;
         word = keywordRepository.save(word);
         return word;
+    }
+
+    @Transactional
+    public Tweet createTweet(Tweet tweet) {
+        return tweetRepository.save(tweet);
+    }
+
+    @Transactional
+    public Profile createProfile(Profile profile) {
+        return profileRepository.save(profile);
+    }
+
+    @Transactional
+    public Tag connectTweetWithTag(Tweet tweet, String word) {
+        Keyword keyword = new Keyword(word);
+        keyword = keywordRepository.save(keyword);
+        return tweetRepository.createRelationshipBetween(tweet, keyword, Tag.class, "Tag");
+    }
+
+    @Transactional
+    public Mention connectTweetWithMention(Tweet tweet, Profile mention) {
+        return tweetRepository.createRelationshipBetween(tweet, mention, Mention.class, "Mention");
     }
 }

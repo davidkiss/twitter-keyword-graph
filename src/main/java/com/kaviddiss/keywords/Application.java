@@ -32,7 +32,6 @@ public class Application extends Neo4jConfiguration {
     @Bean(destroyMethod = "shutdown")
     public GraphDatabaseService graphDatabaseService() {
         return new SpringRestGraphDatabase("http://localhost:7474/db/data");
-//        return new GraphDatabaseFactory().newEmbeddedDatabase("twitter.db");
     }
 
     @Bean
