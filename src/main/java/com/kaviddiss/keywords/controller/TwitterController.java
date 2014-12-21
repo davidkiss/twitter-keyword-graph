@@ -1,6 +1,7 @@
 package com.kaviddiss.keywords.controller;
 
-import org.springframework.social.connect.ConnectionRepository;
+import com.kaviddiss.keywords.domain.Keyword;
+import com.kaviddiss.keywords.service.GraphService;
 import org.springframework.social.twitter.api.CursoredList;
 import org.springframework.social.twitter.api.Twitter;
 import org.springframework.social.twitter.api.TwitterProfile;
@@ -10,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by david on 2014-09-16.
@@ -17,11 +21,13 @@ import javax.inject.Inject;
 @Controller
 public class TwitterController {
 
-    private Twitter twitter;
+    private final Twitter twitter;
+    private final GraphService graphService;
 
     @Inject
-    public TwitterController(Twitter twitter) {
+    public TwitterController(Twitter twitter, GraphService graphService) {
         this.twitter = twitter;
+        this.graphService = graphService;
     }
 
     @RequestMapping("/{handle}/friends")
@@ -29,5 +35,17 @@ public class TwitterController {
     public CursoredList<TwitterProfile> findProfile(@PathVariable("handle") String handle) {
         CursoredList<TwitterProfile> friends = twitter.friendOperations().getFriends(handle);
         return friends;
+    }
+
+    @RequestMapping("/keywords/relevants/{word}")
+    @ResponseBody
+    public Iterable<Keyword> findRelevantKeywords(@PathVariable("word") String word) {
+        return graphService.findRelevantKeywords(word);
+    }
+
+    @RequestMapping("/keywords/top")
+    @ResponseBody
+    public List<Map> findTopKeywords() {
+        return graphService.findTopKeywords();
     }
 }

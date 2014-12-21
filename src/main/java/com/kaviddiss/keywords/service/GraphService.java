@@ -4,10 +4,14 @@ import com.kaviddiss.keywords.domain.*;
 import com.kaviddiss.keywords.repository.KeywordRepository;
 import com.kaviddiss.keywords.repository.TweetRepository;
 import com.kaviddiss.keywords.repository.ProfileRepository;
+import org.springframework.data.neo4j.annotation.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by david on 2014-09-18.
@@ -21,7 +25,7 @@ public class GraphService {
     @Inject
     private ProfileRepository profileRepository;
 
-    @Transactional
+//    @Transactional
     public Connected connectWords(String str1, String str2) {
 //        System.out.println(str1+"->"+str2);
         Keyword word1 = createOrGetKeyword(str1);
@@ -46,30 +50,41 @@ public class GraphService {
             word = new Keyword();
             word.word = str;
         }
-        word.count = word.count + 1;
         word = keywordRepository.save(word);
         return word;
     }
 
-    @Transactional
+//    @Transactional
     public Tweet createTweet(Tweet tweet) {
         return tweetRepository.save(tweet);
     }
 
-    @Transactional
+//    @Transactional
     public Profile createProfile(Profile profile) {
         return profileRepository.save(profile);
     }
 
-    @Transactional
+//    @Transactional
     public Tag connectTweetWithTag(Tweet tweet, String word) {
         Keyword keyword = new Keyword(word);
         keyword = keywordRepository.save(keyword);
-        return tweetRepository.createRelationshipBetween(tweet, keyword, Tag.class, "Tag");
+        Tag tag = tweetRepository.createRelationshipBetween(tweet, keyword, Tag.class, "Tag");
+        return tag;
+    }
+
+//    @Transactional
+    public Mention connectTweetWithMention(Tweet tweet, Profile mention) {
+        return tweetRepository.createRelationshipBetween(tweet, mention, Mention.class, "Mention");
     }
 
     @Transactional
-    public Mention connectTweetWithMention(Tweet tweet, Profile mention) {
-        return tweetRepository.createRelationshipBetween(tweet, mention, Mention.class, "Mention");
+    public List<Map> findTopKeywords() {
+        return keywordRepository.findTopKeywords();
+    }
+
+    @Transactional
+    public List<Keyword> findRelevantKeywords(String word) {
+        Keyword keyword = keywordRepository.findByWord(word);
+        return keyword == null ? new ArrayList<Keyword>() : keywordRepository.findRelevantKeywords(keyword.getId());
     }
 }

@@ -2,12 +2,15 @@ package com.kaviddiss.keywords.service;
 
 import com.kaviddiss.keywords.domain.*;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.social.twitter.api.*;
 import org.springframework.social.twitter.api.Tweet;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,14 +20,15 @@ import java.util.regex.Pattern;
 @Service
 public class TwitterStreamIngester implements InitializingBean, StreamListener {
 
-    private static final Pattern HASHTAG_PATTERN = Pattern.compile("#\\w+");
     private static final boolean PROCESS_FRIENDS = false;
-    private static final boolean USE_HASHTAG = true;
 
     @Inject
     private Twitter twitter;
     @Inject
     private GraphService graphService;
+    @Inject
+    private ThreadPoolTaskExecutor taskExecutor;
+    private BlockingQueue<Tweet> queue = new ArrayBlockingQueue<Tweet>(20);
 
     public void run() {
         List<StreamListener> listeners = new ArrayList<>();
@@ -34,46 +38,11 @@ public class TwitterStreamIngester implements InitializingBean, StreamListener {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        for (int i = 0; i < taskExecutor.getMaxPoolSize(); i++) {
+            taskExecutor.execute(new TweetProcessor(graphService, queue));
+        }
+
         run();
-    }
-
-    private void processTweet(Tweet tweetEntity) {
-        String lang = tweetEntity.getLanguageCode();
-        String text = tweetEntity.getText();
-        if (!"en".equals(lang)) {
-            return;
-        }
-
-        Matcher matcher = HASHTAG_PATTERN.matcher(text);
-        Set<String> hashtags = new HashSet<>();
-        while (matcher.find()) {
-            String handle = matcher.group();
-            hashtags.add(handle.substring(1));
-        }
-
-        if (hashtags.isEmpty()) {
-            return;
-        }
-
-        com.kaviddiss.keywords.domain.Tweet tweet = new com.kaviddiss.keywords.domain.Tweet(tweetEntity.getFromUser(), tweetEntity.getText(), tweetEntity.getCreatedAt(), tweetEntity.getLanguageCode());
-        tweet = graphService.createTweet(tweet);
-        text = text.replaceAll("[\\s,\"]", " ").replaceAll("[ ]{2,}", " ");
-        System.out.println("Tweet: " + text);
-        if (tweetEntity.getEntities() != null) {
-            System.out.println("Mentions: " + tweetEntity.getEntities().getMentions().size());
-            for (MentionEntity mentionEntity : tweetEntity.getEntities().getMentions()) {
-                Profile profile = new Profile(mentionEntity.getScreenName());
-                profile = graphService.createProfile(profile);
-
-                graphService.connectTweetWithMention(tweet, profile);
-            }
-        }
-
-        String[] words = USE_HASHTAG ? hashtags.toArray(new String[hashtags.size()]) : text.split("[ ]+");
-        System.out.println("Word count: " + words.length);
-        for (String word : words) {
-            graphService.connectTweetWithTag(tweet, word);
-        }
     }
 
     @Override
@@ -85,7 +54,7 @@ public class TwitterStreamIngester implements InitializingBean, StreamListener {
                 graphService.connectWords(String.valueOf(tweet.getFromUserId()), String.valueOf(followerId));
             }
         } else {
-            processTweet(tweet);
+//            queue.offer(tweet);
         }
     }
 
