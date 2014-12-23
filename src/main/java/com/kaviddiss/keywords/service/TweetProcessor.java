@@ -4,7 +4,6 @@ import com.kaviddiss.keywords.domain.Profile;
 import org.springframework.social.twitter.api.MentionEntity;
 import org.springframework.social.twitter.api.Tweet;
 
-import javax.inject.Inject;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -46,35 +45,48 @@ public class TweetProcessor implements Runnable {
             return;
         }
 
-        Matcher matcher = HASHTAG_PATTERN.matcher(text);
-        Set<String> hashtags = new HashSet<>();
-        while (matcher.find()) {
-            String handle = matcher.group();
-            hashtags.add(handle.substring(1));
-        }
+        Set<String> hashtags = hashtagsFromTweet(text);
 
         if (hashtags.isEmpty()) {
             return;
         }
 
-        com.kaviddiss.keywords.domain.Tweet tweet = new com.kaviddiss.keywords.domain.Tweet(tweetEntity.getFromUser(), tweetEntity.getText(), tweetEntity.getCreatedAt(), tweetEntity.getLanguageCode());
+        com.kaviddiss.keywords.domain.Tweet tweet = new com.kaviddiss.keywords.domain.Tweet(tweetEntity.getText(), tweetEntity.getCreatedAt(), tweetEntity.getLanguageCode());
+        // Neo4J will automatically find existing record based on screenname due to unique index on field:
+        Profile author = graphService.createProfile(tweetEntity.getFromUser());
+
         tweet = graphService.createTweet(tweet);
-        text = text.replaceAll("[\\s,\"@]", " ").replaceAll("[ ]{2,}", " ");
-        int mentions = 0;
-        if (tweetEntity.getEntities() != null) {
-            mentions = tweetEntity.getEntities().getMentions().size();
-            for (MentionEntity mentionEntity : tweetEntity.getEntities().getMentions()) {
-                Profile profile = new Profile(mentionEntity.getScreenName());
-                profile = graphService.createProfile(profile);
+        graphService.connectTweetWithAuthor(tweet, author);
+        int mentions = connectTweetWithMentions(tweetEntity, tweet);
 
-                graphService.connectTweetWithMention(tweet, profile);
-            }
-        }
-
-        String[] words = USE_HASHTAG ? hashtags.toArray(new String[hashtags.size()]) : text.split("[ ]+");
+        String[] words = hashtags.toArray(new String[hashtags.size()]);
         for (String word : words) {
             graphService.connectTweetWithTag(tweet, word);
         }
         System.out.printf("%d - %d - %s%n", mentions, words.length, text);
+    }
+
+    private int connectTweetWithMentions(Tweet tweetEntity, com.kaviddiss.keywords.domain.Tweet tweet) {
+        int mentions = 0;
+        if (tweetEntity.getEntities() != null) {
+            mentions = tweetEntity.getEntities().getMentions().size();
+            for (MentionEntity mentionEntity : tweetEntity.getEntities().getMentions()) {
+                Profile profile = graphService.createProfile(mentionEntity.getScreenName());
+
+                graphService.connectTweetWithMention(tweet, profile);
+            }
+        }
+        return mentions;
+    }
+
+    private static Set<String> hashtagsFromTweet(String text) {
+        Set<String> hashtags = new HashSet<>();
+        Matcher matcher = HASHTAG_PATTERN.matcher(text);
+        while (matcher.find()) {
+            String handle = matcher.group();
+            // removing '#' prefix
+            hashtags.add(handle.substring(1));
+        }
+        return hashtags;
     }
 }

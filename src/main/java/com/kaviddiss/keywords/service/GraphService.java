@@ -25,9 +25,7 @@ public class GraphService {
     @Inject
     private ProfileRepository profileRepository;
 
-//    @Transactional
     public Connected connectWords(String str1, String str2) {
-//        System.out.println(str1+"->"+str2);
         Keyword word1 = createOrGetKeyword(str1);
         Keyword word2 = createOrGetKeyword(str2);
         Connected connected = createOrGetConnected(word1, word2);
@@ -54,17 +52,18 @@ public class GraphService {
         return word;
     }
 
-//    @Transactional
     public Tweet createTweet(Tweet tweet) {
         return tweetRepository.save(tweet);
     }
 
-//    @Transactional
     public Profile createProfile(Profile profile) {
         return profileRepository.save(profile);
     }
 
-//    @Transactional
+    public Profile createProfile(String screenName) {
+        return profileRepository.save(new Profile(screenName));
+    }
+
     public Tag connectTweetWithTag(Tweet tweet, String word) {
         Keyword keyword = new Keyword(word);
         keyword = keywordRepository.save(keyword);
@@ -72,17 +71,18 @@ public class GraphService {
         return tag;
     }
 
-//    @Transactional
     public Mention connectTweetWithMention(Tweet tweet, Profile mention) {
         return tweetRepository.createRelationshipBetween(tweet, mention, Mention.class, "Mention");
     }
 
-    @Transactional
+    public Author connectTweetWithAuthor(Tweet tweet, Profile author) {
+        return tweetRepository.createRelationshipBetween(tweet, author, Author.class, "Author");
+    }
+
     public List<Map> findTopKeywords() {
         return keywordRepository.findTopKeywords();
     }
 
-    @Transactional
     public List<Keyword> findRelevantKeywords(String word) {
         Keyword keyword = keywordRepository.findByWord(word);
         return keyword == null ? new ArrayList<Keyword>() : keywordRepository.findRelevantKeywords(keyword.getId());

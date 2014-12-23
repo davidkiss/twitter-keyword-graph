@@ -2,6 +2,7 @@ package com.kaviddiss.keywords.service;
 
 import com.kaviddiss.keywords.domain.*;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.social.twitter.api.*;
 import org.springframework.social.twitter.api.Tweet;
@@ -20,15 +21,16 @@ import java.util.regex.Pattern;
 @Service
 public class TwitterStreamIngester implements InitializingBean, StreamListener {
 
-    private static final boolean PROCESS_FRIENDS = false;
-
     @Inject
     private Twitter twitter;
     @Inject
     private GraphService graphService;
     @Inject
     private ThreadPoolTaskExecutor taskExecutor;
-    private BlockingQueue<Tweet> queue = new ArrayBlockingQueue<Tweet>(20);
+    @Value("${twitterProcessing.enabled}")
+    private boolean processingEnabled;
+
+    private BlockingQueue<Tweet> queue = new ArrayBlockingQueue<>(20);
 
     public void run() {
         List<StreamListener> listeners = new ArrayList<>();
@@ -38,24 +40,18 @@ public class TwitterStreamIngester implements InitializingBean, StreamListener {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        for (int i = 0; i < taskExecutor.getMaxPoolSize(); i++) {
-            taskExecutor.execute(new TweetProcessor(graphService, queue));
-        }
+        if (processingEnabled) {
+            for (int i = 0; i < taskExecutor.getMaxPoolSize(); i++) {
+                taskExecutor.execute(new TweetProcessor(graphService, queue));
+            }
 
-        run();
+            run();
+        }
     }
 
     @Override
     public void onTweet(Tweet tweet) {
-        if (PROCESS_FRIENDS) {
-            tweet.getFromUser();
-            CursoredList<Long> followerIds = twitter.friendOperations().getFollowerIds(tweet.getFromUserId());
-            for (Long followerId : followerIds) {
-                graphService.connectWords(String.valueOf(tweet.getFromUserId()), String.valueOf(followerId));
-            }
-        } else {
-//            queue.offer(tweet);
-        }
+        queue.offer(tweet);
     }
 
     @Override

@@ -31,8 +31,8 @@ public class Application extends Neo4jConfiguration {
     }
 
     @Bean(destroyMethod = "shutdown")
-    public GraphDatabaseService graphDatabaseService() {
-        return new SpringRestGraphDatabase("http://localhost:7474/db/data");
+    public GraphDatabaseService graphDatabaseService(final @Value("${neo4j.uri}") String neo4jUri) {
+        return new SpringRestGraphDatabase(neo4jUri);
     }
 
     @Bean
@@ -50,11 +50,13 @@ public class Application extends Neo4jConfiguration {
     }
 
     @Bean
-    public ThreadPoolTaskExecutor taskExecutor() {
+    public ThreadPoolTaskExecutor taskExecutor(final @Value("${taskExecutor.corePoolSize}") int corePoolSize,
+                                               final @Value("${taskExecutor.maxPoolSize}") int maxPoolSize,
+                                               final @Value("${taskExecutor.queueCapacity}") int queueCapacity) {
         ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
-        taskExecutor.setCorePoolSize(5);
-        taskExecutor.setMaxPoolSize(10);
-        taskExecutor.setQueueCapacity(25);
+        taskExecutor.setCorePoolSize(corePoolSize);
+        taskExecutor.setMaxPoolSize(maxPoolSize);
+        taskExecutor.setQueueCapacity(queueCapacity);
         return taskExecutor;
     }
 

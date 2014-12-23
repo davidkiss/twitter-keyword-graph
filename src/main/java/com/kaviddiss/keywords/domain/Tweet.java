@@ -13,7 +13,6 @@ public class Tweet {
     @GraphId
     Long id;
 
-    public String authorScreenName;
     public String text;
     public Date createdAt = new Date();
     public String languageCode;
@@ -21,8 +20,7 @@ public class Tweet {
     public Tweet() {
     }
 
-    public Tweet(String authorScreenName, String text, Date createdAt, String languageCode) {
-        this.authorScreenName = authorScreenName;
+    public Tweet(String text, Date createdAt, String languageCode) {
         this.text = text;
         this.createdAt = createdAt;
         this.languageCode = languageCode;
