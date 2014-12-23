@@ -49,12 +49,14 @@
     </repositories>
 
     <dependencies>
+<!--
         <dependency>
             <groupId>org.twitter4j</groupId>
             <artifactId>twitter4j-stream</artifactId>
             <version>4.0.2</version>
         </dependency>
 
+-->
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-neo4j</artifactId>
