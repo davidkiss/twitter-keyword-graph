@@ -8,6 +8,7 @@ import org.springframework.social.twitter.api.*;
 import org.springframework.social.twitter.api.Tweet;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -19,7 +20,7 @@ import java.util.regex.Pattern;
  * Created by david on 2014-09-16.
  */
 @Service
-public class TwitterStreamIngester implements InitializingBean, StreamListener {
+public class TwitterStreamIngester implements StreamListener {
 
     @Inject
     private Twitter twitter;
@@ -38,7 +39,7 @@ public class TwitterStreamIngester implements InitializingBean, StreamListener {
         twitter.streamingOperations().sample(listeners);
     }
 
-    @Override
+    @PostConstruct
     public void afterPropertiesSet() throws Exception {
         if (processingEnabled) {
             for (int i = 0; i < taskExecutor.getMaxPoolSize(); i++) {

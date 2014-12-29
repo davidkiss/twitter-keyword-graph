@@ -15,7 +15,6 @@ import java.util.regex.Pattern;
 */
 public class TweetProcessor implements Runnable {
     private static final Pattern HASHTAG_PATTERN = Pattern.compile("#\\w+");
-    private static final boolean USE_HASHTAG = true;
 
     private GraphService graphService;
     private final BlockingQueue<Tweet> queue;
@@ -30,7 +29,6 @@ public class TweetProcessor implements Runnable {
         while (true) {
             try {
                 Tweet tweet = queue.take();
-//                System.out.printf("Text: %s%n", tweet.getText());
                 processTweet(tweet);
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -41,12 +39,14 @@ public class TweetProcessor implements Runnable {
     private void processTweet(Tweet tweetEntity) {
         String lang = tweetEntity.getLanguageCode();
         String text = tweetEntity.getText();
+        // filter non-English tweets:
         if (!"en".equals(lang)) {
             return;
         }
 
         Set<String> hashtags = hashtagsFromTweet(text);
 
+        // filter tweets without hashtags:
         if (hashtags.isEmpty()) {
             return;
         }
@@ -59,11 +59,16 @@ public class TweetProcessor implements Runnable {
         graphService.connectTweetWithAuthor(tweet, author);
         int mentions = connectTweetWithMentions(tweetEntity, tweet);
 
+        String[] words = connectTweetWithTags(tweet, hashtags);
+        System.out.printf("%d - %d - %s%n", mentions, words.length, text);
+    }
+
+    private String[] connectTweetWithTags(com.kaviddiss.keywords.domain.Tweet tweet, Set<String> hashtags) {
         String[] words = hashtags.toArray(new String[hashtags.size()]);
         for (String word : words) {
             graphService.connectTweetWithTag(tweet, word);
         }
-        System.out.printf("%d - %d - %s%n", mentions, words.length, text);
+        return words;
     }
 
     private int connectTweetWithMentions(Tweet tweetEntity, com.kaviddiss.keywords.domain.Tweet tweet) {

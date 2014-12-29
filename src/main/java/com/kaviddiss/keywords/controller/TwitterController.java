@@ -32,9 +32,9 @@ public class TwitterController {
 
     @RequestMapping("/{handle}/friends")
     @ResponseBody
-    public CursoredList<TwitterProfile> findProfile(@PathVariable("handle") String handle) {
-        CursoredList<TwitterProfile> friends = twitter.friendOperations().getFriends(handle);
-        return friends;
+    public CursoredList<TwitterProfile> findFriends(@PathVariable("handle") String handle) {
+        // return friends using the Spring Social Twitter framework:
+        return twitter.friendOperations().getFriends(handle);
     }
 
     @RequestMapping("/keywords/relevants/{word}")
