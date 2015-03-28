@@ -22,7 +22,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.7</java.version>
         <start-class>com.kaviddiss.keywords.Application</start-class>
-        <spring-data-neo4j.version>3.2.0.RELEASE</spring-data-neo4j.version>
+        <spring-data-neo4j.version>3.3.0.RELEASE</spring-data-neo4j.version>
+        <spring-data-releasetrain.version>Fowler-RELEASE</spring-data-releasetrain.version>
     </properties>
 
     <dependencies>
@@ -51,11 +52,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-social-twitter</artifactId>
 		</dependency>
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-neo4j</artifactId>
-            <version>${spring-data-neo4j.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j</artifactId>
